@@ -1,6 +1,6 @@
 import { Trash2, CheckCircle2, Clock, AlignLeft } from 'lucide-react';
 
-const TaskCard = ({ task, onComplete, onDelete }) => {
+const TaskCard = ({ task, onComplete, onDelete, username }) => {
   const statusConfig = {
     'Pending': { 
       badge: 'bg-brand-gold/10 text-brand-gold border-brand-gold/30',
@@ -20,6 +20,7 @@ const TaskCard = ({ task, onComplete, onDelete }) => {
   };
 
   const config = statusConfig[task.status] || statusConfig['Pending'];
+  const userInitial = username ? username.charAt(0).toUpperCase() : 'U';
 
   return (
     <div className={`group glass-panel rounded-3xl p-6 transition-all duration-300 hover:-translate-y-1 ${config.glow} flex flex-col h-full border border-brand-coral/10`}>
@@ -60,8 +61,8 @@ const TaskCard = ({ task, onComplete, onDelete }) => {
           <span>{new Date(task.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
         </div>
         
-        <div className="w-8 h-8 rounded-full border-2 border-brand-bg bg-gradient-to-tr from-brand-coral to-brand-orange flex items-center justify-center text-[10px] font-bold text-brand-bg shadow-sm">
-          SJ
+        <div className="w-8 h-8 rounded-full border-2 border-brand-bg bg-gradient-to-tr from-brand-coral to-brand-orange flex items-center justify-center text-[12px] font-bold text-brand-bg shadow-sm">
+          {userInitial}
         </div>
       </div>
     </div>

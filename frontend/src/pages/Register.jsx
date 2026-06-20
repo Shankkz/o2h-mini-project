@@ -1,35 +1,41 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { UserPlus, CheckSquare, Loader2 } from 'lucide-react';
+import { UserPlus, CheckSquare, Loader2, Eye, EyeOff } from 'lucide-react';
 import api from '../services/api';
 
 const Register = () => {
-  const navigate = useNavigate();
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
 
+    // Strict validation
+    if (formData.username.trim().length < 3) {
+      return setError('Username must be at least 3 characters.');
+    }
+    const alphanumericRegex = /^[a-zA-Z0-9]+$/;
+    if (!alphanumericRegex.test(formData.username)) {
+      return setError('Username can only contain letters and numbers.');
+    }
     if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
-      setLoading(false);
-      return;
+      return setError('Password must be at least 6 characters.');
+    }
+    const hasLetterAndNumber = /[a-zA-Z]/.test(formData.password) && /[0-9]/.test(formData.password);
+    if (!hasLetterAndNumber) {
+      return setError('Password must contain both letters and numbers for security.');
     }
 
+    setLoading(true);
+
     try {
-      // 1. Register User
       await api.post('/auth/register', formData);
-      
-      // 2. Auto-login immediately after
       const loginRes = await api.post('/auth/login', formData);
       localStorage.setItem('token', loginRes.data.token);
       localStorage.setItem('username', loginRes.data.username);
-      
-      // 3. Redirect
       window.location.href = '/dashboard';
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed. Try a different username.');
@@ -84,21 +90,30 @@ const Register = () => {
                   type="text" 
                   required
                   value={formData.username}
-                  onChange={(e) => setFormData({...formData, username: e.target.value})}
+                  onChange={(e) => setFormData({...formData, username: e.target.value.trim()})}
                   className="w-full px-5 py-4 bg-brand-bg border border-brand-text/20 rounded-2xl focus:ring-2 focus:ring-brand-gold/50 focus:border-brand-gold outline-none text-brand-text transition-all placeholder:text-brand-text/30 font-medium"
                   placeholder="Choose a username"
                 />
               </div>
               <div>
                 <label className="block text-sm font-bold text-brand-text/80 mb-2 tracking-wide uppercase">Password</label>
-                <input 
-                  type="password" 
-                  required
-                  value={formData.password}
-                  onChange={(e) => setFormData({...formData, password: e.target.value})}
-                  className="w-full px-5 py-4 bg-brand-bg border border-brand-text/20 rounded-2xl focus:ring-2 focus:ring-brand-gold/50 focus:border-brand-gold outline-none text-brand-text transition-all placeholder:text-brand-text/30 font-medium"
-                  placeholder="Create a password (min 6 chars)"
-                />
+                <div className="relative">
+                  <input 
+                    type={showPassword ? "text" : "password"} 
+                    required
+                    value={formData.password}
+                    onChange={(e) => setFormData({...formData, password: e.target.value})}
+                    className="w-full pl-5 pr-12 py-4 bg-brand-bg border border-brand-text/20 rounded-2xl focus:ring-2 focus:ring-brand-gold/50 focus:border-brand-gold outline-none text-brand-text transition-all placeholder:text-brand-text/30 font-medium"
+                    placeholder="Create a password"
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-brand-text/50 hover:text-brand-gold transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
               </div>
               
               <button 

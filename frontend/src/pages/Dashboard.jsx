@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Search, BarChart3, Clock, CheckCircle2, CircleDashed, Loader2 } from 'lucide-react';
+import { Plus, Search, BarChart3, Clock, CheckCircle2, CircleDashed, Loader2, AlertTriangle } from 'lucide-react';
 import TaskCard from '../components/TaskCard';
 import api from '../services/api';
 
@@ -10,10 +10,21 @@ const Dashboard = () => {
   
   const [tasks, setTasks] = useState([]);
   const [stats, setStats] = useState({ total: 0, pending: 0, inProgress: 0, completed: 0 });
-  
   const [loading, setLoading] = useState(true);
+  
   const [statusFilter, setStatusFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  const [taskToDelete, setTaskToDelete] = useState(null);
+
+  // Debounce search effect
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 500); // 500ms debounce
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
 
   const fetchDashboardData = async () => {
     try {
@@ -22,29 +33,26 @@ const Dashboard = () => {
       if (statusFilter && statusFilter !== 'All Tasks') {
         params.status = statusFilter;
       }
-      if (searchQuery) {
-        params.search = searchQuery;
+      if (debouncedSearch) {
+        params.search = debouncedSearch;
       }
 
-      // Fetch both tasks and stats concurrently
       const [tasksRes, statsRes] = await Promise.all([
         api.get('/tasks', { params }),
         api.get('/tasks/stats')
       ]);
 
       setTasks(tasksRes.data.tasks);
-
-      // Parse MongoDB aggregation stats format into flat object
-      const newStats = { total: 0, pending: 0, inProgress: 0, completed: 0 };
-      if (statsRes.data.stats) {
-        statsRes.data.stats.forEach(s => {
-          newStats.total += s.count;
-          if (s._id === 'Pending') newStats.pending = s.count;
-          if (s._id === 'In Progress') newStats.inProgress = s.count;
-          if (s._id === 'Completed') newStats.completed = s.count;
+      
+      // Fix: Direct mapping of the flat response object
+      if (statsRes.data) {
+        setStats({
+          total: statsRes.data.total || 0,
+          pending: statsRes.data.pending || 0,
+          inProgress: statsRes.data.inProgress || 0,
+          completed: statsRes.data.completed || 0
         });
       }
-      setStats(newStats);
       
     } catch (error) {
       console.error("Failed to fetch dashboard data:", error);
@@ -58,28 +66,23 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchDashboardData();
-  }, [statusFilter]); // Re-fetch only when clicking a status filter button
-
-  const handleSearchKey = (e) => {
-    if (e.key === 'Enter') {
-      fetchDashboardData();
-    }
-  };
+  }, [statusFilter, debouncedSearch]); // Now fetches automatically on search type
 
   const handleCompleteTask = async (taskId) => {
     try {
       await api.put(`/tasks/${taskId}`, { status: 'Completed' });
-      fetchDashboardData(); // Refresh to update list and stats
+      fetchDashboardData();
     } catch (err) {
       console.error("Error marking completed:", err);
     }
   };
 
-  const handleDeleteTask = async (taskId) => {
-    if (!window.confirm("Are you sure you want to permanently delete this task?")) return;
+  const confirmDelete = async () => {
+    if (!taskToDelete) return;
     try {
-      await api.delete(`/tasks/${taskId}`);
-      fetchDashboardData(); // Refresh to update list and stats
+      await api.delete(`/tasks/${taskToDelete}`);
+      setTaskToDelete(null);
+      fetchDashboardData();
     } catch (err) {
       console.error("Error deleting task:", err);
     }
@@ -93,8 +96,35 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-700 fade-in pb-12">
+    <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-700 fade-in pb-12 relative">
       
+      {/* Delete Confirmation Modal */}
+      {taskToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+          <div className="glass-panel w-full max-w-md p-8 rounded-3xl shadow-2xl border border-red-500/30 transform transition-all scale-100">
+            <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mb-6 mx-auto">
+              <AlertTriangle className="w-8 h-8 text-red-500" />
+            </div>
+            <h3 className="text-2xl font-extrabold text-brand-text text-center mb-3">Delete Task?</h3>
+            <p className="text-brand-text/70 text-center mb-8">This action cannot be undone. Are you sure you want to permanently delete this task from your board?</p>
+            <div className="flex gap-4">
+              <button 
+                onClick={() => setTaskToDelete(null)}
+                className="flex-1 py-3.5 rounded-2xl font-bold text-brand-text border border-brand-text/20 hover:bg-brand-text/5 transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={confirmDelete}
+                className="flex-1 py-3.5 rounded-2xl font-bold text-white bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/30 transition-all hover:-translate-y-0.5"
+              >
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Welcome Banner */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
         <div>
@@ -136,10 +166,9 @@ const Dashboard = () => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-text/40" />
           <input 
             type="text" 
-            placeholder="Search tasks by title (Press Enter)..." 
+            placeholder="Search tasks..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={handleSearchKey}
             className="w-full pl-10 pr-4 py-3 bg-transparent border-none focus:ring-0 outline-none text-brand-text placeholder:text-brand-text/40 font-medium"
           />
         </div>
@@ -170,7 +199,7 @@ const Dashboard = () => {
         <div className="glass-panel p-16 rounded-3xl text-center flex flex-col items-center justify-center border-dashed border-2 border-brand-text/20">
           <CheckCircle2 className="w-16 h-16 text-brand-text/20 mb-4" />
           <h3 className="text-2xl font-bold text-brand-text mb-2">No tasks found</h3>
-          <p className="text-brand-text/60 max-w-md mx-auto">Create a new task to get started, or clear your current filters.</p>
+          <p className="text-brand-text/60 max-w-md mx-auto">Create a new task to get started, or adjust your search filters.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pt-6">
@@ -178,8 +207,9 @@ const Dashboard = () => {
             <TaskCard 
               key={task._id} 
               task={task} 
+              username={username}
               onComplete={handleCompleteTask}
-              onDelete={handleDeleteTask}
+              onDelete={(id) => setTaskToDelete(id)}
             />
           ))}
         </div>

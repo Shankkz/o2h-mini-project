@@ -67,9 +67,11 @@ const AddTask = () => {
           <div>
             <div className="flex justify-between items-center mb-3">
               <label className="block text-sm font-bold text-brand-text/80 tracking-wide uppercase">Description *</label>
-              <span className={`text-xs font-bold ${formData.description.length < 20 ? 'text-brand-gold' : 'text-brand-coral'}`}>
-                {formData.description.length} / 20 min chars
-              </span>
+              {formData.description.length < 20 && (
+                <span className="text-xs font-bold text-brand-gold">
+                  {formData.description.length} / 20 min chars
+                </span>
+              )}
             </div>
             <textarea 
               rows="5"

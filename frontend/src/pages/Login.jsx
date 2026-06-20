@@ -1,23 +1,32 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowRight, CheckSquare, Loader2 } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowRight, CheckSquare, Loader2, Eye, EyeOff } from 'lucide-react';
 import api from '../services/api';
 
 const Login = () => {
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    
+    // Client-side basic validation
+    if (formData.username.length < 3) {
+      return setError('Username must be at least 3 characters.');
+    }
+    if (formData.password.length < 6) {
+      return setError('Password must be at least 6 characters.');
+    }
+
     setLoading(true);
 
     try {
       const response = await api.post('/auth/login', formData);
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('username', response.data.username);
-      // Hard redirect to clear out memory/state and rebuild app tree with Auth
       window.location.href = '/dashboard'; 
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
@@ -72,7 +81,7 @@ const Login = () => {
                   type="text" 
                   required
                   value={formData.username}
-                  onChange={(e) => setFormData({...formData, username: e.target.value})}
+                  onChange={(e) => setFormData({...formData, username: e.target.value.trim()})}
                   className="w-full px-5 py-4 bg-brand-bg border border-brand-text/20 rounded-2xl focus:ring-2 focus:ring-brand-coral/50 focus:border-brand-coral outline-none text-brand-text transition-all placeholder:text-brand-text/30 font-medium"
                   placeholder="Enter your username"
                 />
@@ -81,14 +90,23 @@ const Login = () => {
                 <div className="flex justify-between items-center mb-2">
                   <label className="block text-sm font-bold text-brand-text/80 tracking-wide uppercase">Password</label>
                 </div>
-                <input 
-                  type="password" 
-                  required
-                  value={formData.password}
-                  onChange={(e) => setFormData({...formData, password: e.target.value})}
-                  className="w-full px-5 py-4 bg-brand-bg border border-brand-text/20 rounded-2xl focus:ring-2 focus:ring-brand-coral/50 focus:border-brand-coral outline-none text-brand-text transition-all placeholder:text-brand-text/30 font-medium"
-                  placeholder="Enter your password"
-                />
+                <div className="relative">
+                  <input 
+                    type={showPassword ? "text" : "password"} 
+                    required
+                    value={formData.password}
+                    onChange={(e) => setFormData({...formData, password: e.target.value})}
+                    className="w-full pl-5 pr-12 py-4 bg-brand-bg border border-brand-text/20 rounded-2xl focus:ring-2 focus:ring-brand-coral/50 focus:border-brand-coral outline-none text-brand-text transition-all placeholder:text-brand-text/30 font-medium"
+                    placeholder="Enter your password"
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-brand-text/50 hover:text-brand-coral transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
               </div>
               
               <button 
