@@ -1,7 +1,31 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CheckSquare } from 'lucide-react';
+import { ArrowRight, CheckSquare, Loader2 } from 'lucide-react';
+import api from '../services/api';
 
 const Login = () => {
+  const [formData, setFormData] = useState({ username: '', password: '' });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      const response = await api.post('/auth/login', formData);
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('username', response.data.username);
+      // Hard redirect to clear out memory/state and rebuild app tree with Auth
+      window.location.href = '/dashboard'; 
+    } catch (err) {
+      setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-[85vh] flex items-center justify-center p-4">
       <div className="w-full max-w-5xl flex rounded-[2.5rem] overflow-hidden glass-panel shadow-2xl border border-brand-coral/20">
@@ -35,11 +59,20 @@ const Login = () => {
               <p className="text-brand-text/60 font-medium text-lg">Enter your credentials to access your account.</p>
             </div>
             
-            <form className="space-y-6">
+            <form className="space-y-6" onSubmit={handleSubmit}>
+              {error && (
+                <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm font-bold text-center">
+                  {error}
+                </div>
+              )}
+              
               <div>
                 <label className="block text-sm font-bold text-brand-text/80 mb-2 tracking-wide uppercase">Username</label>
                 <input 
                   type="text" 
+                  required
+                  value={formData.username}
+                  onChange={(e) => setFormData({...formData, username: e.target.value})}
                   className="w-full px-5 py-4 bg-brand-bg border border-brand-text/20 rounded-2xl focus:ring-2 focus:ring-brand-coral/50 focus:border-brand-coral outline-none text-brand-text transition-all placeholder:text-brand-text/30 font-medium"
                   placeholder="Enter your username"
                 />
@@ -47,21 +80,28 @@ const Login = () => {
               <div>
                 <div className="flex justify-between items-center mb-2">
                   <label className="block text-sm font-bold text-brand-text/80 tracking-wide uppercase">Password</label>
-                  <a href="#" className="text-sm font-bold text-brand-coral hover:text-brand-coral/80 transition-colors">Forgot?</a>
                 </div>
                 <input 
                   type="password" 
+                  required
+                  value={formData.password}
+                  onChange={(e) => setFormData({...formData, password: e.target.value})}
                   className="w-full px-5 py-4 bg-brand-bg border border-brand-text/20 rounded-2xl focus:ring-2 focus:ring-brand-coral/50 focus:border-brand-coral outline-none text-brand-text transition-all placeholder:text-brand-text/30 font-medium"
                   placeholder="Enter your password"
                 />
               </div>
               
               <button 
-                type="button" 
-                className="w-full flex items-center justify-center gap-2 bg-brand-orange hover:bg-[#ff5c1a] text-brand-bg py-4 rounded-2xl font-bold text-lg transition-all shadow-[0_8px_20px_-6px_rgba(255,69,0,0.4)] hover:shadow-[0_12px_25px_-6px_rgba(255,69,0,0.5)] hover:-translate-y-0.5 mt-8"
+                type="submit" 
+                disabled={loading}
+                className="w-full flex items-center justify-center gap-2 bg-brand-orange hover:bg-[#ff5c1a] text-brand-bg py-4 rounded-2xl font-bold text-lg transition-all shadow-[0_8px_20px_-6px_rgba(255,69,0,0.4)] hover:shadow-[0_12px_25px_-6px_rgba(255,69,0,0.5)] hover:-translate-y-0.5 mt-8 disabled:opacity-70 disabled:hover:translate-y-0"
               >
-                <span>Sign In to Dashboard</span>
-                <ArrowRight className="w-6 h-6" />
+                {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : (
+                  <>
+                    <span>Sign In to Dashboard</span>
+                    <ArrowRight className="w-6 h-6" />
+                  </>
+                )}
               </button>
             </form>
             
