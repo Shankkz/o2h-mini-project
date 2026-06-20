@@ -1,1 +1,64 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+@theme {
+  --color-brand-bg: var(--bg);
+  --color-brand-text: var(--text);
+  --color-brand-coral: var(--coral);
+  --color-brand-gold: var(--gold);
+  --color-brand-orange: var(--orange);
+}
+
+@layer base {
+  :root {
+    /* Light Mode (Inverted Warm Tones) */
+    --bg: #F5E8D8; 
+    --text: #1C1C1C;
+    --coral: #E65C50;
+    --gold: #C08D12;
+    --orange: #E03D00;
+  }
+
+  :root.dark {
+    /* Dark Mode (Original Warm Tones) */
+    --bg: #1C1C1C;
+    --text: #F5E8D8;
+    --coral: #FF6F61;
+    --gold: #DAA520;
+    --orange: #FF4500;
+  }
+
+  body {
+    font-family: 'Outfit', sans-serif;
+    background-color: var(--color-brand-bg);
+    color: var(--color-brand-text);
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+}
+
+.glass-panel {
+  @apply bg-brand-bg/80 backdrop-blur-xl border border-brand-coral/20 shadow-xl shadow-brand-text/5;
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.gradient-text {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-brand-coral to-brand-gold;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-brand-orange/50 rounded-full hover:bg-brand-orange transition-colors;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
